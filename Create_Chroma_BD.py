@@ -3,7 +3,7 @@ from chromadb.utils import embedding_functions
 import pandas as pd
 import time
 
-API_KEY = "AIzaSyBg-yrk3goufLEBrDmqIt_dF3IzEHEq3sk"
+API_KEY = "AIzaSyAzM4LtKQxELGYtssXI7-JJ8-nu4N9Djp8"
 mes_chunks_rgpd = pd.read_csv('RGPD_articles.csv')
 mes_chunks_contrat = pd.read_csv('Industrial_Compliance_Test_Contract.csv')
 
@@ -22,7 +22,8 @@ def create_chroma_db_rgpd(mes_chunks,API_KEY):
     # 3. On crée (ou récupère) la collection"
     collection = client.get_or_create_collection(
         name="lois_rgpd", 
-        embedding_function=google_ef
+        embedding_function=google_ef,
+        metadata={"hnsw:space": "cosine"} # Nécessaire pour que Chroma utilise la distance cosinus lors de la recherche de similarité entre les vecteurs
     )
 
     batch_size = 5
@@ -52,7 +53,8 @@ def create_chroma_db_contrat(mes_chunks_contrat,API_KEY):
 
     collection = client.get_or_create_collection(
         name="contrat", 
-        embedding_function=google_ef
+        embedding_function=google_ef,
+        metadata={"hnsw:space": "cosine"}
     )
 
     batch_size = 5
@@ -72,5 +74,5 @@ def create_chroma_db_contrat(mes_chunks_contrat,API_KEY):
         time.sleep(10)  # Pause pour éviter les limites d'API
     print("Base de données Chroma créée avec succès !")
 
-
+# create_chroma_db_rgpd(mes_chunks_rgpd,API_KEY)
 create_chroma_db_contrat(mes_chunks_contrat,API_KEY)
