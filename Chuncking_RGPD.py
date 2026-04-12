@@ -1,20 +1,6 @@
 from bs4 import BeautifulSoup
 import pandas as pd
 
-with open('RGPD_text.html', 'r') as file:
-    rgpd_text = file.read()
-    soup = BeautifulSoup(rgpd_text, 'html.parser')
-    articles = soup.find(id='L_2016119EN.01000101.art_1')
-    articles_number = articles.find('p',class_='oj-ti-art')
-    articles_name = articles.find('p',class_='oj-sti-art')
-    articles_contents = articles.find_all('p',class_='oj-normal')
-    articles_content = "\n".join([p.text for p in articles_contents])
-
-# print("Article:", articles.text)
-# print("Numéros:", articles_number.text)
-# print("Noms:", articles_name.text)
-# print("Contenu:", articles_content)
-
 def chunk_text(rgpd_text, nb_articles=99):
     soup = BeautifulSoup(rgpd_text, 'html.parser')
     data = []  # Créer une liste pour stocker les données
@@ -23,8 +9,8 @@ def chunk_text(rgpd_text, nb_articles=99):
         article_id = f'L_2016119EN.01000101.art_{i}'
         try:
             articles = soup.find(id=article_id)
-            if articles is None:  # Vérifier si l'article existe
-                print(f"Article {article_id} non trouvé")
+            if articles is None:
+                # print(f"Article {article_id} non trouvé")
                 continue
                 
             articles_number = articles.find('p', class_='oj-ti-art')
@@ -52,5 +38,9 @@ def chunk_text(rgpd_text, nb_articles=99):
     df = pd.DataFrame(data)
     return df
 
+with open('RGPD_text.html', 'r') as file:
+    rgpd_text = file.read()
+
 df = chunk_text(rgpd_text)
-print(df.head())
+# print(df.head())  # Afficher les premières lignes du DataFrame
+df.to_csv('RGPD_articles.csv', index=False)
