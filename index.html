@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RGPD Auditor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181c27;
+    --surface2:  #1e2335;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+    --text:      #e8eaf0;
+    --muted:     #808898;
+    --accent:    #4e8cff;
+    --success:   #34c97e;
+    --warn:      #f5a623;
+    --danger:    #f24c4c;
+    --radius:    10px;
+    --mono:      'JetBrains Mono', 'Fira Code', monospace;
+    --sans:      'Inter', system-ui, sans-serif;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; min-height: 100vh; }
+  a { color: var(--accent); }
+
+  .shell { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+  /* ── Header ── */
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 2.5rem; }
+  .logo-box { width: 40px; height: 40px; border-radius: 10px; background: #1b2d52; border: 1px solid #2e4a8a; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: -.5px; }
+  h1 { font-size: 18px; font-weight: 600; }
+  .tagline { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+
+  .field-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+
+  /* ── Drop Zone ── */
+  .drop { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: all .15s; }
+  .drop:hover, .drop.hover { background: var(--surface2); border-color: var(--accent); }
+  .drop.loaded { border-color: var(--success); border-style: solid; background: rgba(52,201,126,.06); }
+  .drop-icon { font-size: 28px; margin-bottom: 10px; }
+  .drop-hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .drop-filename { font-size: 13px; font-weight: 600; color: var(--success); margin-top: 4px; }
+
+  /* ── Textarea ── */
+  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; padding: 10px 14px; resize: vertical; min-height: 80px; font-family: var(--sans); line-height: 1.6; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* ── Params ── */
+  .params-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+  .param-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .param-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+  .param-control { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); }
+  .param-val { font-size: 16px; font-weight: 700; color: var(--text); min-width: 36px; text-align: right; font-family: var(--mono); }
+
+  /* ── Button ── */
+  .btn { width: 100%; padding: 13px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: .02em; font-family: var(--sans); transition: all .15s; }
+  .btn:hover { background: #252d45; border-color: var(--accent); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.primary { background: #1b2d52; border-color: #2e4a8a; color: #7aaeff; }
+  .btn.primary:hover { background: #213668; }
+
+  /* ── Progress ── */
+  .progress-section { margin-top: 1.25rem; }
+  .progress-bar-wrap { height: 3px; background: var(--surface2); border-radius: 2px; margin-bottom: 1rem; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .4s ease; border-radius: 2px; }
+  .step { font-size: 12px; color: var(--muted); padding: 3px 0; font-family: var(--mono); }
+  .step.done   { color: var(--success); }
+  .step.active { color: var(--accent); }
+
+  /* ── Results ── */
+  .results-card { margin-top: 1.25rem; }
+  .verdict-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 4px 12px; border-radius: 6px; }
+  .badge.ok   { background: rgba(52,201,126,.15); color: var(--success); border: 1px solid rgba(52,201,126,.3); }
+  .badge.no   { background: rgba(242,76,76,.15);  color: var(--danger);  border: 1px solid rgba(242,76,76,.3); }
+  .badge.part { background: rgba(245,166,35,.15); color: var(--warn);    border: 1px solid rgba(245,166,35,.3); }
+
+  .verdict-text { font-family: var(--mono); font-size: 12px; line-height: 1.85; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+  .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .75rem; }
+  .chunk-item { background: var(--surface2); border-radius: 7px; padding: .75rem 1rem; margin-bottom: .5rem; font-family: var(--mono); font-size: 11px; line-height: 1.7; }
+  .chunk-meta { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .chunk-text { color: var(--text); }
+
+  /* ── Error ── */
+  .error-box { background: rgba(242,76,76,.08); border: 1px solid rgba(242,76,76,.2); border-radius: 8px; padding: 1rem; font-size: 12px; font-family: var(--mono); color: var(--danger); line-height: 1.7; }
+
+  /* ── Footer hint ── */
+  .hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 2rem; line-height: 1.7; }
+  code { font-family: var(--mono); background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="logo-box">RAG</div>
+    <div>
+      <h1>RGPD Auditor</h1>
+      <div class="tagline">Analyse RAG + Gemini — Conformité règlement européen 2016/679</div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="field-label">Document à auditer (PDF)</div>
+    <div class="drop" id="drop-zone" onclick="document.getElementById('file-input').click()"
+         ondragover="ev(event,'over')" ondragleave="ev(event,'leave')" ondrop="ev(event,'drop')">
+      <div class="drop-icon">📄</div>
+      <div class="drop-hint" id="drop-hint">Glisser-déposer votre PDF ici<br>ou cliquer pour sélectionner</div>
+      <div class="drop-filename" id="drop-filename" style="display:none"></div>
+    </div>
+    <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="onFile(this.files[0])">
+  </div>
+
+  <!-- Question -->
+  <div class="card">
+    <div class="field-label">Question de conformité</div>
+    <textarea id="question" placeholder="Ex : La clause de collecte de données personnelles est-elle conforme au RGPD ?
+Ex : Quelles sont les obligations manquantes concernant le droit à l'effacement ?
+Ex : Ce contrat respecte-t-il les exigences de l'article 28 sur les sous-traitants ?"></textarea>
+  </div>
+
+  <!-- Params -->
+  <div class="params-row">
+    <div class="param-box">
+      <div class="param-label">Chunks récupérés (top-k)</div>
+      <div class="param-control">
+        <input type="range" min="3" max="10" value="5" step="1" id="topk"
+               oninput="document.getElementById('topk-v').textContent=this.value">
+        <span class="param-val" id="topk-v">5</span>
+      </div>
+    </div>
+    <div class="param-box">
+      <div class="param-label">Seuil de similarité</div>
+      <div class="param-control">
+        <input type="range" min="20" max="70" value="35" step="5" id="thresh"
+               oninput="document.getElementById('thresh-v').textContent=(this.value/100).toFixed(2)">
+        <span class="param-val" id="thresh-v">0.35</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Button -->
+  <button class="btn primary" id="audit-btn" onclick="runAudit()">⚖ Lancer l'audit RGPD</button>
+
+  <!-- Progress -->
+  <div id="progress-section" style="display:none" class="progress-section">
+    <div class="progress-bar-wrap"><div class="progress-fill" id="pbar"></div></div>
+    <div id="steps"></div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-section" style="display:none" class="error-box" id="error-box"></div>
+
+  <!-- Results -->
+  <div id="results-section" style="display:none" class="card results-card">
+    <div class="verdict-header">
+      <div class="field-label" style="margin:0">Rapport d'audit RGPD</div>
+      <span class="badge" id="verdict-badge"></span>
+    </div>
+    <div class="verdict-text" id="verdict-text"></div>
+
+    <hr>
+    <div class="section-title">Extraits du document utilisés</div>
+    <div id="doc-chunks"></div>
+
+    <hr>
+    <div class="section-title">Articles RGPD mobilisés</div>
+    <div id="law-chunks"></div>
+  </div>
+
+  <div class="hint">
+    Assurez-vous que l'API tourne en local : <code>python api.py</code> → <code>http://localhost:8000</code>
+    <br>Vérifiez votre clé API Google : variable d'env <code>GOOGLE_API_KEY</code>
+  </div>
+
+</div>
+
+<script>
+const API_URL = 'http://localhost:8000';
+let selectedFile = null;
+
+function ev(e, type) {
+  e.preventDefault();
+  const dz = document.getElementById('drop-zone');
+  if (type === 'over')  dz.classList.add('hover');
+  if (type === 'leave') dz.classList.remove('hover');
+  if (type === 'drop') {
+    dz.classList.remove('hover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.pdf')) onFile(f);
+  }
+}
+
+function onFile(f) {
+  if (!f) return;
+  selectedFile = f;
+  document.getElementById('drop-zone').classList.add('loaded');
+  document.getElementById('drop-hint').style.display = 'none';
+  const fn = document.getElementById('drop-filename');
+  fn.style.display = 'block';
+  fn.textContent = '✓ ' + f.name + ' (' + (f.size / 1024).toFixed(0) + ' KB)';
+}
+
+const STEPS = [
+  '1/5  Découpage du PDF en chunks (PyMuPDF)...',
+  '2/5  Création de la collection vectorielle éphémère...',
+  '3/5  Connexion à la base RGPD persistante...',
+  '4/5  Dual RAG search + query expansion (Gemini)...',
+  '5/5  Génération du rapport d\'audit (Gemini 2.5 Flash)...'
+];
+const TIMINGS = [700, 1500, 400, 2500, 2000];
+
+function renderSteps(active) {
+  document.getElementById('steps').innerHTML = STEPS.map((s, i) =>
+    `<div class="step ${i < active ? 'done' : i === active ? 'active' : ''}">` +
+    `${i < active ? '✓' : i === active ? '→' : '·'} ${s}</div>`
+  ).join('');
+}
+
+async function runAudit() {
+  if (!selectedFile) { alert('Sélectionnez un fichier PDF.'); return; }
+  const question = document.getElementById('question').value.trim();
+  if (!question)   { alert('Entrez votre question de conformité.'); return; }
+
+  const btn = document.getElementById('audit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Audit en cours...';
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('error-section').style.display   = 'none';
+  document.getElementById('results-section').style.display = 'none';
+
+  for (let i = 0; i < STEPS.length; i++) {
+    renderSteps(i);
+    document.getElementById('pbar').style.width = Math.round((i / STEPS.length) * 85) + '%';
+    await sleep(TIMINGS[i]);
+  }
+
+  const topk      = document.getElementById('topk').value;
+  const threshold = (document.getElementById('thresh').value / 100).toFixed(2);
+  const form      = new FormData();
+  form.append('file',      selectedFile);
+  form.append('question',  question);
+  form.append('top_k',     topk);
+  form.append('threshold', threshold);
+
+  try {
+    const resp = await fetch(`${API_URL}/audit`, { method: 'POST', body: form });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || 'Erreur serveur');
+    }
+    const data = await resp.json();
+    document.getElementById('pbar').style.width = '100%';
+    renderSteps(STEPS.length);
+    await sleep(300);
+    showResults(data);
+  } catch (e) {
+    document.getElementById('error-section').style.display = 'block';
+    document.getElementById('error-section').innerHTML =
+      `<strong>Erreur :</strong> ${e.message}<br><br>` +
+      `Vérifiez que l'API tourne bien : <code>python api.py</code><br>` +
+      `Endpoint attendu : <code>${API_URL}/audit</code>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚖ Lancer l\'audit RGPD';
+  }
+}
+
+function getVerdict(text) {
+  if (/non.conforme/i.test(text))            return { label: 'Non conforme',          cls: 'no'   };
+  if (/partiellement.conforme/i.test(text))  return { label: 'Partiellement conforme', cls: 'part' };
+  if (/conforme/i.test(text))                return { label: 'Conforme',               cls: 'ok'   };
+  return { label: 'Analyse complète', cls: 'part' };
+}
+
+function showResults(data) {
+  document.getElementById('results-section').style.display = 'block';
+  const v = getVerdict(data.verdict);
+  const badge = document.getElementById('verdict-badge');
+  badge.textContent = v.label; badge.className = 'badge ' + v.cls;
+  document.getElementById('verdict-text').textContent = data.verdict;
+
+  document.getElementById('doc-chunks').innerHTML =
+    (data.doc_chunks || []).map(c =>
+      `<div class="chunk-item">` +
+      `<div class="chunk-meta">Page ${c.metadata?.page || '?'} · score ${c.similarity}</div>` +
+      `<div class="chunk-text">${esc(c.text.slice(0, 300))}…</div></div>`
+    ).join('') || '<div class="chunk-meta">Aucun extrait pertinent.</div>';
+
+  document.getElementById('law-chunks').innerHTML =
+    (data.law_articles || []).map(c =>
+      `<div class="chunk-item">` +
+      `<div class="chunk-meta">${c.metadata?.article || '?'} — ${c.metadata?.titre || ''} · score ${c.similarity}</div>` +
+      `<div class="chunk-text">${esc(c.text.slice(0, 300))}…</div></div>`
+    ).join('') || '<div class="chunk-meta">Aucun article RGPD pertinent.</div>';
+
+  document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+</script>
+</body>
+</html>
