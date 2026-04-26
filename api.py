@@ -1,7 +1,6 @@
 """
 ╔══════════════════════════════════════════════════════════════╗
-║           RGPD AUDITOR — Serveur FastAPI                    ║
-║  Lance avec : python api.py  (ou uvicorn api:app --reload)  ║
+║           RGPD AUDITOR — Serveur FastAPI                     ║
 ╚══════════════════════════════════════════════════════════════╝
 
 Dépendances : pip install fastapi uvicorn python-multipart
@@ -14,7 +13,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from auditor_pipeline import run_full_audit
+from pipeline import run_full_audit
 
 # ─────────────────────────────────────────────────────────────
 # APP FASTAPI
@@ -22,7 +21,7 @@ from auditor_pipeline import run_full_audit
 
 app = FastAPI(
     title       = "RGPD Auditor API",
-    description = "Analyse la conformité RGPD d'un document PDF via RAG + LLM",
+    description = "Analyze the RGPD compliance of a PDF document via RAG + LLM",
     version     = "1.0.0"
 )
 
@@ -36,39 +35,22 @@ app.add_middleware(
 
 
 # ─────────────────────────────────────────────────────────────
-# ROUTES
+# API Requests
 # ─────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Monitoring"])
 def health_check():
-    """Vérifie que l'API est opérationnelle."""
+    """Check API is running."""
     return {"status": "ok", "message": "RGPD Auditor API is running"}
 
 
 @app.post("/audit", tags=["Audit"])
 async def audit_document(
-    file:      UploadFile = File(...,         description="PDF du contrat à auditer"),
-    question:  str        = Form(...,         description="Question de conformité RGPD"),
-    top_k:     int        = Form(5,           description="Nb de chunks à récupérer"),
-    threshold: float      = Form(0.35,        description="Score de similarité minimum (0–1)")
+    file:      UploadFile = File(...,         description="PDF of the contract to be audited"),
+    question:  str        = Form(...,         description="Compliance issue RGPD"),
+    top_k:     int        = Form(5,           description="Number of chunks to retrieve"),
+    threshold: float      = Form(0.35,        description="Minimum similarity score (0–1)")
 ):
-    """
-    Endpoint principal : reçoit un PDF + une question, retourne un rapport d'audit RGPD.
-
-    Le pipeline complet s'exécute en arrière-plan (non-bloquant) :
-    chunking → embedding éphémère → dual RAG search → LLM audit.
-
-    Réponse JSON :
-    ```json
-    {
-      "session_id":   "abc12345",
-      "question":     "...",
-      "verdict":      "## VERDICT GLOBAL\\n...",
-      "doc_chunks":   [...],
-      "law_articles": [...]
-    }
-    ```
-    """
     # ── Validation ──
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés.")
@@ -79,13 +61,13 @@ async def audit_document(
     if not (0.0 <= threshold <= 1.0):
         raise HTTPException(status_code=400, detail="Le threshold doit être entre 0.0 et 1.0.")
 
-    # ── Sauvegarde temporaire du fichier uploadé ──
+    # ── Save upload file ──
     content = await file.read()
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(content)
         tmp_path = tmp.name
 
-    # ── Exécution du pipeline dans un thread (opérations bloquantes) ──
+    # ── Pipeline execution in a thread (blocking operations) ──
     try:
         loop   = asyncio.get_event_loop()
         result = await loop.run_in_executor(
@@ -106,11 +88,11 @@ async def audit_document(
         raise HTTPException(status_code=500, detail=f"Erreur pipeline : {str(e)}")
 
     finally:
-        os.unlink(tmp_path)   # nettoyage du fichier temporaire
+        os.unlink(tmp_path) 
 
 
 # ─────────────────────────────────────────────────────────────
-# LANCEMENT DIRECT
+# API RUN
 # ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

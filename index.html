@@ -3,190 +3,391 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RGPD Auditor</title>
+<title>RGPD Auditor — Analyse de conformité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg:        #0f1117;
-    --surface:   #181c27;
-    --surface2:  #1e2335;
-    --border:    rgba(255,255,255,0.07);
-    --border2:   rgba(255,255,255,0.12);
-    --text:      #e8eaf0;
-    --muted:     #808898;
-    --accent:    #4e8cff;
-    --success:   #34c97e;
-    --warn:      #f5a623;
-    --danger:    #f24c4c;
-    --radius:    10px;
-    --mono:      'JetBrains Mono', 'Fira Code', monospace;
-    --sans:      'Inter', system-ui, sans-serif;
-  }
+:root {
+  --cream:       #F4F1EB;
+  --cream-dark:  #EAE6DC;
+  --cream-deep:  #DDD8CE;
+  --ink:         #1C1C2E;
+  --ink-light:   #3D3D52;
+  --muted:       #8A8898;
+  --navy:        #1A3558;
+  --navy-mid:    #234876;
+  --success:     #2D6E4E;
+  --success-bg:  #EAF4EE;
+  --danger:      #8B2020;
+  --danger-bg:   #FAEAEA;
+  --warn:        #8B6020;
+  --warn-bg:     #FAF3EA;
+  --gold:        #B08D57;
+  --border:      rgba(28,28,46,0.10);
+  --border-mid:  rgba(28,28,46,0.16);
+  --shadow-sm:   0 1px 3px rgba(28,28,46,0.06), 0 1px 2px rgba(28,28,46,0.04);
+  --shadow-md:   0 4px 16px rgba(28,28,46,0.08), 0 1px 4px rgba(28,28,46,0.05);
+  --radius:      10px;
+  --font-display:'Cormorant Garamond', Georgia, serif;
+  --font-body:   'DM Sans', system-ui, sans-serif;
+  --font-mono:   'DM Mono', 'Courier New', monospace;
+}
 
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; min-height: 100vh; }
-  a { color: var(--accent); }
+html { scroll-behavior: smooth; }
 
-  .shell { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  min-height: 100vh;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
 
-  /* ── Header ── */
-  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 2.5rem; }
-  .logo-box { width: 40px; height: 40px; border-radius: 10px; background: #1b2d52; border: 1px solid #2e4a8a; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: -.5px; }
-  h1 { font-size: 18px; font-weight: 600; }
-  .tagline { font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes dashMove { to { stroke-dashoffset:-20; } }
+@keyframes pulseDot {
+  0%,100% { opacity:1; transform:translateX(50%) translateY(-50%) scale(1); }
+  50%     { opacity:.6; transform:translateX(50%) translateY(-50%) scale(1.5); }
+}
+@keyframes checkIn {
+  from { transform:scale(.5); opacity:0; }
+  to   { transform:scale(1);  opacity:1; }
+}
+@keyframes resultIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes stepIn {
+  from { opacity:0; transform:translateX(-6px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes btnPulse {
+  0%,100% { box-shadow:0 4px 16px rgba(26,53,88,.22); }
+  50%     { box-shadow:0 4px 28px rgba(26,53,88,.40); }
+}
 
-  /* ── Cards ── */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+.animate { opacity:0; animation:fadeUp .55s cubic-bezier(.22,1,.36,1) forwards; }
+.delay-1 { animation-delay:.05s; }
+.delay-2 { animation-delay:.15s; }
+.delay-3 { animation-delay:.25s; }
+.delay-4 { animation-delay:.35s; }
+.delay-5 { animation-delay:.45s; }
+.delay-6 { animation-delay:.55s; }
 
-  .field-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+/* ── Layout ── */
+.shell { max-width:680px; margin:0 auto; padding:3.5rem 1.5rem 5rem; }
 
-  /* ── Drop Zone ── */
-  .drop { border: 1.5px dashed var(--border2); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: all .15s; }
-  .drop:hover, .drop.hover { background: var(--surface2); border-color: var(--accent); }
-  .drop.loaded { border-color: var(--success); border-style: solid; background: rgba(52,201,126,.06); }
-  .drop-icon { font-size: 28px; margin-bottom: 10px; }
-  .drop-hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
-  .drop-filename { font-size: 13px; font-weight: 600; color: var(--success); margin-top: 4px; }
+/* ── Header ── */
+.header { margin-bottom:3rem; padding-bottom:2rem; border-bottom:1px solid var(--border-mid); }
+.header-top { display:flex; align-items:flex-start; gap:18px; }
 
-  /* ── Textarea ── */
-  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; padding: 10px 14px; resize: vertical; min-height: 80px; font-family: var(--sans); line-height: 1.6; }
-  textarea:focus { outline: none; border-color: var(--accent); }
-  textarea::placeholder { color: var(--muted); }
+.seal {
+  flex-shrink:0; width:52px; height:52px;
+  border:1.5px solid var(--navy-mid); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  position:relative; margin-top:4px;
+}
+.seal::before {
+  content:''; position:absolute; inset:4px;
+  border:1px solid var(--border-mid); border-radius:50%;
+}
+.seal-inner {
+  font-family:var(--font-mono); font-size:9px; font-weight:500;
+  color:var(--navy); letter-spacing:.05em; text-align:center; line-height:1.3;
+}
 
-  /* ── Params ── */
-  .params-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
-  .param-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
-  .param-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
-  .param-control { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-  input[type=range] { flex: 1; accent-color: var(--accent); }
-  .param-val { font-size: 16px; font-weight: 700; color: var(--text); min-width: 36px; text-align: right; font-family: var(--mono); }
+.header-text h1 {
+  font-family:var(--font-display); font-size:32px; font-weight:600;
+  color:var(--ink); letter-spacing:-.02em; line-height:1.1;
+}
+.header-text h1 em { font-style:italic; color:var(--navy-mid); }
+.tagline { font-size:12px; color:var(--muted); margin-top:6px; letter-spacing:.04em; text-transform:uppercase; }
 
-  /* ── Button ── */
-  .btn { width: 100%; padding: 13px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: .02em; font-family: var(--sans); transition: all .15s; }
-  .btn:hover { background: #252d45; border-color: var(--accent); }
-  .btn:disabled { opacity: .5; cursor: not-allowed; }
-  .btn.primary { background: #1b2d52; border-color: #2e4a8a; color: #7aaeff; }
-  .btn.primary:hover { background: #213668; }
+.header-meta { display:flex; gap:20px; margin-top:1.25rem; flex-wrap:wrap; }
+.meta-chip {
+  font-size:10px; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); display:flex; align-items:center; gap:6px;
+}
+.meta-chip::before {
+  content:''; display:inline-block; width:5px; height:5px;
+  border-radius:50%; background:var(--gold);
+}
 
-  /* ── Progress ── */
-  .progress-section { margin-top: 1.25rem; }
-  .progress-bar-wrap { height: 3px; background: var(--surface2); border-radius: 2px; margin-bottom: 1rem; overflow: hidden; }
-  .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .4s ease; border-radius: 2px; }
-  .step { font-size: 12px; color: var(--muted); padding: 3px 0; font-family: var(--mono); }
-  .step.done   { color: var(--success); }
-  .step.active { color: var(--accent); }
+/* ── Section labels ── */
+.section-label { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.section-label-text { font-size:10px; text-transform:uppercase; letter-spacing:.10em; font-weight:500; color:var(--muted); white-space:nowrap; }
+.section-label-line { flex:1; height:1px; background:var(--border); }
 
-  /* ── Results ── */
-  .results-card { margin-top: 1.25rem; }
-  .verdict-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-  .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 4px 12px; border-radius: 6px; }
-  .badge.ok   { background: rgba(52,201,126,.15); color: var(--success); border: 1px solid rgba(52,201,126,.3); }
-  .badge.no   { background: rgba(242,76,76,.15);  color: var(--danger);  border: 1px solid rgba(242,76,76,.3); }
-  .badge.part { background: rgba(245,166,35,.15); color: var(--warn);    border: 1px solid rgba(245,166,35,.3); }
+/* ── Cards ── */
+.card {
+  background:#FDFCF9; border:1px solid var(--border); border-radius:var(--radius);
+  padding:1.5rem; margin-bottom:1rem; box-shadow:var(--shadow-sm); transition:box-shadow .2s;
+}
+.card:hover { box-shadow:var(--shadow-md); }
 
-  .verdict-text { font-family: var(--mono); font-size: 12px; line-height: 1.85; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+/* full-bleed card : étend la carte sur toute la largeur écran tout en restant responsive */
+.card.full-bleed {
+  max-width: none;
+  width: 80vw;                     
+  position: relative;
+  left: 50%;  
+  right: 50%;                          
+  transform: translateX(-50%);              
+}
 
-  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
-  .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .75rem; }
-  .chunk-item { background: var(--surface2); border-radius: 7px; padding: .75rem 1rem; margin-bottom: .5rem; font-family: var(--mono); font-size: 11px; line-height: 1.7; }
-  .chunk-meta { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
-  .chunk-text { color: var(--text); }
+/* ── Drop zone ── */
+.drop {
+  position:relative; border-radius:8px; padding:2.25rem 2rem; text-align:center;
+  cursor:pointer; background:var(--cream); overflow:hidden; transition:background .2s;
+}
+.drop-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.drop-svg rect { fill:none; stroke:var(--border-mid); stroke-width:1.5; stroke-dasharray:8 5; transition:stroke .2s; }
+.drop:hover .drop-svg rect, .drop.hover .drop-svg rect {
+  stroke:var(--navy-mid); animation:dashMove .5s linear infinite;
+}
+.drop.loaded { background:var(--success-bg); }
+.drop.loaded .drop-svg rect { stroke:var(--success); stroke-dasharray:none; animation:none; }
 
-  /* ── Error ── */
-  .error-box { background: rgba(242,76,76,.08); border: 1px solid rgba(242,76,76,.2); border-radius: 8px; padding: 1rem; font-size: 12px; font-family: var(--mono); color: var(--danger); line-height: 1.7; }
+.drop-icon { font-size:26px; margin-bottom:10px; display:block; transition:transform .2s; }
+.drop:hover .drop-icon { transform:translateY(-2px); }
+.drop-hint { font-size:13px; color:var(--muted); line-height:1.7; font-weight:300; }
+.drop-hint small { font-size:11px; opacity:.7; }
+.drop-filename { display:none; font-size:13px; font-weight:500; color:var(--success); font-family:var(--font-mono); animation:checkIn .3s cubic-bezier(.34,1.56,.64,1); }
 
-  /* ── Footer hint ── */
-  .hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 2rem; line-height: 1.7; }
-  code { font-family: var(--mono); background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--accent); }
+/* ── Textarea ── */
+textarea {
+  width:100%; background:var(--cream); border:1px solid var(--border-mid); border-radius:8px;
+  color:var(--ink); font-size:13px; padding:12px 14px; resize:vertical; min-height:88px;
+  font-family:var(--font-body); font-weight:300; line-height:1.7;
+  transition:border-color .2s, box-shadow .2s;
+}
+textarea:focus { outline:none; border-color:var(--navy-mid); box-shadow:0 0 0 3px rgba(35,72,118,.08); }
+textarea::placeholder { color:var(--muted); font-style:italic; }
+
+/* ── Params ── */
+.params-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1rem; }
+.param-box { background:#FDFCF9; border:1px solid var(--border); border-radius:8px; padding:14px 16px; box-shadow:var(--shadow-sm); }
+.param-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-weight:500; }
+.param-control { display:flex; align-items:center; gap:12px; margin-top:10px; }
+
+input[type=range] {
+  flex:1; -webkit-appearance:none; height:3px;
+  background:var(--cream-deep); border-radius:2px; outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:var(--navy); border:2px solid #FDFCF9;
+  box-shadow:0 1px 4px rgba(28,28,46,.2); cursor:pointer; transition:transform .15s, box-shadow .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); box-shadow:0 2px 8px rgba(28,28,46,.25); }
+.param-val { font-family:var(--font-mono); font-size:16px; font-weight:500; color:var(--navy); min-width:38px; text-align:right; }
+
+/* ── Button ── */
+.btn {
+  width:100%; padding:14px 20px; border-radius:8px; border:none;
+  background:var(--navy); color:#F4F1EB; font-size:13px; font-weight:500;
+  font-family:var(--font-body); letter-spacing:.06em; text-transform:uppercase;
+  cursor:pointer; transition:background .2s, transform .15s, box-shadow .2s;
+  box-shadow:0 4px 16px rgba(26,53,88,.22); position:relative; overflow:hidden;
+}
+.btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 60%); pointer-events:none; }
+.btn:hover:not(:disabled) { background:var(--navy-mid); transform:translateY(-1px); box-shadow:0 6px 22px rgba(26,53,88,.30); }
+.btn:active:not(:disabled) { transform:translateY(0); }
+.btn:disabled { opacity:.65; cursor:not-allowed; animation:btnPulse 1.8s ease-in-out infinite; }
+
+/* ── Progress ── */
+.progress-section { margin-top:1.5rem; animation:fadeUp .3s ease forwards; }
+.progress-track { height:2px; background:var(--cream-deep); border-radius:2px; margin-bottom:1.25rem; position:relative; overflow:visible; }
+.progress-fill { height:100%; background:linear-gradient(90deg, var(--navy-mid), var(--gold)); border-radius:2px; transition:width .5s cubic-bezier(.4,0,.2,1); position:relative; }
+.progress-fill::after {
+  content:''; position:absolute; right:0; top:50%;
+  transform:translateX(50%) translateY(-50%);
+  width:8px; height:8px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 6px var(--gold);
+  animation:pulseDot 1s ease-in-out infinite;
+}
+.progress-fill.done::after { display:none; }
+
+.step { font-size:11.5px; color:var(--muted); padding:2.5px 0; font-family:var(--font-mono); animation:stepIn .25s ease forwards; }
+.step.done   { color:var(--success); }
+.step.active { color:var(--navy-mid); font-weight:500; }
+
+/* ── Results ── */
+.results-card { margin-top:1.25rem; animation:resultIn .5s cubic-bezier(.22,1,.36,1) forwards; }
+.verdict-header { display:flex; align-items:center; justify-content:space-between; padding-bottom:1.25rem; border-bottom:1px solid var(--border); margin-bottom:1.5rem; }
+.verdict-title { font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
+
+.badge { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:.09em; padding:5px 14px; border-radius:20px; font-family:var(--font-body); }
+.badge.ok   { background:var(--success-bg); color:var(--success); border:1px solid rgba(45,110,78,.2); }
+.badge.no   { background:var(--danger-bg);  color:var(--danger);  border:1px solid rgba(139,32,32,.2); }
+.badge.part { background:var(--warn-bg);    color:var(--warn);    border:1px solid rgba(139,96,32,.2); }
+
+.verdict-text { font-family:var(--font-mono); font-size:12px; line-height:1.9; color:var(--ink-light); white-space:pre-wrap; word-break:break-word; }
+
+.divider { border:none; border-top:1px solid var(--border); margin:1.5rem 0; }
+.sub-section-title { font-size:10px; text-transform:uppercase; letter-spacing:.10em; font-weight:500; color:var(--muted); margin-bottom:.75rem; }
+
+.chunk-item {
+  background:var(--cream); border:1px solid var(--border);
+  border-left:3px solid var(--gold); border-radius:0 6px 6px 0;
+  padding:10px 14px; margin-bottom:8px;
+  font-family:var(--font-mono); font-size:11px; line-height:1.7;
+  transition:border-left-color .15s;
+}
+.chunk-item:hover { border-left-color:var(--navy); }
+.chunk-meta { font-size:10px; color:var(--muted); margin-bottom:5px; letter-spacing:.03em; }
+.chunk-text { color:var(--ink-light); }
+
+/* ── Error ── */
+.error-box {
+  background:var(--danger-bg); border:1px solid rgba(139,32,32,.15); border-radius:8px;
+  padding:1rem 1.25rem; font-size:12px; font-family:var(--font-mono); color:var(--danger);
+  line-height:1.8; margin-top:1rem; animation:resultIn .3s ease forwards; white-space:pre-wrap;
+}
+
+/* ── Footer ── */
+.footer-hint { margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border); font-size:11px; color:var(--muted); text-align:center; line-height:1.8; font-weight:300; }
+code { font-family:var(--font-mono); font-size:10.5px; background:var(--cream-dark); border:1px solid var(--border); padding:1px 6px; border-radius:4px; color:var(--navy-mid); }
+
+@media (max-width:500px) {
+  .params-row { grid-template-columns:1fr; }
+  .header-text h1 { font-size:26px; }
+}
 </style>
 </head>
 <body>
 <div class="shell">
 
-  <div class="header">
-    <div class="logo-box">RAG</div>
-    <div>
-      <h1>RGPD Auditor</h1>
-      <div class="tagline">Analyse RAG + Gemini — Conformité règlement européen 2016/679</div>
+  <header class="header animate delay-1">
+    <div class="header-top">
+      <div class="seal">
+        <div class="seal-inner">RGPD<br>2016</div>
+      </div>
+      <div class="header-text">
+        <h1>RGPD <em>Auditor</em></h1>
+        <div class="tagline">Analyse de conformité — Règlement (UE) 2016/679</div>
+      </div>
     </div>
-  </div>
+    <div class="header-meta">
+      <div class="meta-chip">RAG vectoriel</div>
+      <div class="meta-chip">Gemini 2.5 Flash</div>
+      <div class="meta-chip">ChromaDB</div>
+    </div>
+  </header>
 
   <!-- Upload -->
-  <div class="card">
-    <div class="field-label">Document à auditer (PDF)</div>
-    <div class="drop" id="drop-zone" onclick="document.getElementById('file-input').click()"
-         ondragover="ev(event,'over')" ondragleave="ev(event,'leave')" ondrop="ev(event,'drop')">
-      <div class="drop-icon">📄</div>
-      <div class="drop-hint" id="drop-hint">Glisser-déposer votre PDF ici<br>ou cliquer pour sélectionner</div>
-      <div class="drop-filename" id="drop-filename" style="display:none"></div>
+  <div class="animate delay-2">
+    <div class="section-label">
+      <span class="section-label-text">Document à auditer</span>
+      <span class="section-label-line"></span>
     </div>
-    <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="onFile(this.files[0])">
+    <div class="card" style="padding:1.25rem;">
+      <div class="drop" id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="ev(event,'over')" ondragleave="ev(event,'leave')" ondrop="ev(event,'drop')">
+        <svg class="drop-svg" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="7"/>
+        </svg>
+        <span class="drop-icon">📋</span>
+        <div class="drop-hint" id="drop-hint">
+          Déposez votre contrat PDF ici<br>
+          <small>ou cliquez pour sélectionner un fichier</small>
+        </div>
+        <div class="drop-filename" id="drop-filename"></div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="onFile(this.files[0])">
+    </div>
   </div>
 
   <!-- Question -->
-  <div class="card">
-    <div class="field-label">Question de conformité</div>
-    <textarea id="question" placeholder="Ex : La clause de collecte de données personnelles est-elle conforme au RGPD ?
-Ex : Quelles sont les obligations manquantes concernant le droit à l'effacement ?
+  <div class="animate delay-3">
+    <div class="section-label">
+      <span class="section-label-text">Question de conformité</span>
+      <span class="section-label-line"></span>
+    </div>
+    <div class="card" style="padding:1.25rem;">
+      <textarea id="question" placeholder="Ex : Les transferts de données hors UE sont-ils conformes à l'article 46 ?
+Ex : Quelles obligations manquent concernant le droit à l'effacement ?
 Ex : Ce contrat respecte-t-il les exigences de l'article 28 sur les sous-traitants ?"></textarea>
+    </div>
   </div>
 
   <!-- Params -->
-  <div class="params-row">
-    <div class="param-box">
-      <div class="param-label">Chunks récupérés (top-k)</div>
-      <div class="param-control">
-        <input type="range" min="3" max="10" value="5" step="1" id="topk"
-               oninput="document.getElementById('topk-v').textContent=this.value">
-        <span class="param-val" id="topk-v">5</span>
-      </div>
+  <div class="animate delay-4">
+    <div class="section-label">
+      <span class="section-label-text">Paramètres d'analyse</span>
+      <span class="section-label-line"></span>
     </div>
-    <div class="param-box">
-      <div class="param-label">Seuil de similarité</div>
-      <div class="param-control">
-        <input type="range" min="20" max="70" value="35" step="5" id="thresh"
-               oninput="document.getElementById('thresh-v').textContent=(this.value/100).toFixed(2)">
-        <span class="param-val" id="thresh-v">0.35</span>
+    <div class="params-row">
+      <div class="param-box">
+        <div class="param-label">Chunks récupérés (top-k)</div>
+        <div class="param-control">
+          <input type="range" min="3" max="10" value="5" step="1" id="topk"
+                 oninput="document.getElementById('topk-v').textContent=this.value">
+          <span class="param-val" id="topk-v">5</span>
+        </div>
+      </div>
+      <div class="param-box">
+        <div class="param-label">Seuil de similarité</div>
+        <div class="param-control">
+          <input type="range" min="20" max="70" value="35" step="5" id="thresh"
+                 oninput="document.getElementById('thresh-v').textContent=(this.value/100).toFixed(2)">
+          <span class="param-val" id="thresh-v">0.35</span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Button -->
-  <button class="btn primary" id="audit-btn" onclick="runAudit()">⚖ Lancer l'audit RGPD</button>
+  <div class="animate delay-5">
+    <button class="btn" id="audit-btn" onclick="runAudit()">
+      Lancer l'audit de conformité
+    </button>
+  </div>
 
   <!-- Progress -->
   <div id="progress-section" style="display:none" class="progress-section">
-    <div class="progress-bar-wrap"><div class="progress-fill" id="pbar"></div></div>
+    <div class="progress-track">
+      <div class="progress-fill" id="pbar" style="width:0%"></div>
+    </div>
     <div id="steps"></div>
   </div>
 
   <!-- Error -->
-  <div id="error-section" style="display:none" class="error-box" id="error-box"></div>
+  <div id="error-section" style="display:none" class="error-box"></div>
 
   <!-- Results -->
-  <div id="results-section" style="display:none" class="card results-card">
+  <div id="results-section" style="display:none" class="card full-bleed" style="padding:1.25rem;">
     <div class="verdict-header">
-      <div class="field-label" style="margin:0">Rapport d'audit RGPD</div>
+      <div class="verdict-title">Rapport d'audit</div>
       <span class="badge" id="verdict-badge"></span>
     </div>
     <div class="verdict-text" id="verdict-text"></div>
-
-    <hr>
-    <div class="section-title">Extraits du document utilisés</div>
+    <hr class="divider">
+    <div class="sub-section-title">Extraits du document utilisés</div>
     <div id="doc-chunks"></div>
-
-    <hr>
-    <div class="section-title">Articles RGPD mobilisés</div>
+    <hr class="divider">
+    <div class="sub-section-title">Articles RGPD mobilisés</div>
     <div id="law-chunks"></div>
   </div>
 
-  <div class="hint">
-    Assurez-vous que l'API tourne en local : <code>python api.py</code> → <code>http://localhost:8000</code>
-    <br>Vérifiez votre clé API Google : variable d'env <code>GOOGLE_API_KEY</code>
+  <div class="footer-hint animate delay-6">
+    Serveur requis : <code>python api.py</code> → <code>http://localhost:8000</code>
+    &nbsp;·&nbsp; Clé API : <code>API_KEY_RGPD_AUDITOR</code>
   </div>
 
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
 <script>
 const API_URL = 'http://localhost:8000';
 let selectedFile = null;
@@ -199,7 +400,8 @@ function ev(e, type) {
   if (type === 'drop') {
     dz.classList.remove('hover');
     const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.pdf')) onFile(f);
+    if (f && f.name.toLowerCase().endsWith('.pdf')) onFile(f);
+    else if (f) showError('Seuls les fichiers PDF sont acceptés.');
   }
 }
 
@@ -207,43 +409,44 @@ function onFile(f) {
   if (!f) return;
   selectedFile = f;
   document.getElementById('drop-zone').classList.add('loaded');
-  document.getElementById('drop-hint').style.display = 'none';
+  document.getElementById('drop-hint').style.display  = 'none';
   const fn = document.getElementById('drop-filename');
   fn.style.display = 'block';
-  fn.textContent = '✓ ' + f.name + ' (' + (f.size / 1024).toFixed(0) + ' KB)';
+  fn.textContent   = '✓  ' + f.name + '  ·  ' + (f.size / 1024).toFixed(0) + ' KB';
 }
 
 const STEPS = [
-  '1/5  Découpage du PDF en chunks (PyMuPDF)...',
+  '1/5  Découpage structurel du PDF (PyMuPDF)...',
   '2/5  Création de la collection vectorielle éphémère...',
   '3/5  Connexion à la base RGPD persistante...',
-  '4/5  Dual RAG search + query expansion (Gemini)...',
-  '5/5  Génération du rapport d\'audit (Gemini 2.5 Flash)...'
+  '4/5  Dual RAG search + query expansion...',
+  '5/5  Génération du rapport (Gemini 2.5 Flash)...'
 ];
-const TIMINGS = [700, 1500, 400, 2500, 2000];
+const TIMINGS = [600, 1400, 350, 2200, 1800]; // mettre si possible les vrais temps d'exécution de chaque étape pour une meilleure UX + modifier nom des étapes en conséquence (ex : "Connexion à la base RGPD persistante" → "Recherche de la jurisprudence RGPD")
 
 function renderSteps(active) {
   document.getElementById('steps').innerHTML = STEPS.map((s, i) =>
     `<div class="step ${i < active ? 'done' : i === active ? 'active' : ''}">` +
-    `${i < active ? '✓' : i === active ? '→' : '·'} ${s}</div>`
+    (i < active ? '✓ ' : i === active ? '→ ' : '· ') + s + '</div>'
   ).join('');
 }
 
 async function runAudit() {
-  if (!selectedFile) { alert('Sélectionnez un fichier PDF.'); return; }
+  if (!selectedFile) { showError('Veuillez sélectionner un fichier PDF.'); return; }
   const question = document.getElementById('question').value.trim();
-  if (!question)   { alert('Entrez votre question de conformité.'); return; }
+  if (!question)   { showError('Veuillez saisir une question de conformité.'); return; }
 
   const btn = document.getElementById('audit-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Audit en cours...';
+  btn.disabled    = true;
+  btn.textContent = 'Analyse en cours…';
+
   document.getElementById('progress-section').style.display = 'block';
-  document.getElementById('error-section').style.display   = 'none';
-  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('error-section').style.display    = 'none';
+  document.getElementById('results-section').style.display  = 'none';
 
   for (let i = 0; i < STEPS.length; i++) {
     renderSteps(i);
-    document.getElementById('pbar').style.width = Math.round((i / STEPS.length) * 85) + '%';
+    document.getElementById('pbar').style.width = Math.round((i / STEPS.length) * 82) + '%';
     await sleep(TIMINGS[i]);
   }
 
@@ -262,54 +465,73 @@ async function runAudit() {
       throw new Error(err.detail || 'Erreur serveur');
     }
     const data = await resp.json();
-    document.getElementById('pbar').style.width = '100%';
+    const pbar = document.getElementById('pbar');
+    pbar.style.width = '100%';
+    pbar.classList.add('done');
     renderSteps(STEPS.length);
-    await sleep(300);
+    await sleep(400);
     showResults(data);
   } catch (e) {
-    document.getElementById('error-section').style.display = 'block';
-    document.getElementById('error-section').innerHTML =
-      `<strong>Erreur :</strong> ${e.message}<br><br>` +
-      `Vérifiez que l'API tourne bien : <code>python api.py</code><br>` +
-      `Endpoint attendu : <code>${API_URL}/audit</code>`;
+    showError(`${e.message}\n\nVérifiez que l'API tourne : python api.py\nEndpoint attendu : ${API_URL}/audit`);
   } finally {
-    btn.disabled = false;
-    btn.textContent = '⚖ Lancer l\'audit RGPD';
+    btn.disabled    = false;
+    btn.textContent = "Lancer l'audit de conformité";
   }
 }
 
+function showError(msg) {
+  const el = document.getElementById('error-section');
+  el.style.display = 'block';
+  el.textContent   = msg;
+}
+
 function getVerdict(text) {
-  if (/non.conforme/i.test(text))            return { label: 'Non conforme',          cls: 'no'   };
-  if (/partiellement.conforme/i.test(text))  return { label: 'Partiellement conforme', cls: 'part' };
-  if (/conforme/i.test(text))                return { label: 'Conforme',               cls: 'ok'   };
-  return { label: 'Analyse complète', cls: 'part' };
+  if (/non[\s-]conforme/i.test(text))           return { label:'Non conforme',           cls:'no'   };
+  if (/partiellement[\s-]conforme/i.test(text)) return { label:'Partiellement conforme',  cls:'part' };
+  if (/\bconforme\b/i.test(text))               return { label:'Conforme',                cls:'ok'   };
+  return { label:'Analyse complète', cls:'part' };
 }
 
 function showResults(data) {
   document.getElementById('results-section').style.display = 'block';
-  const v = getVerdict(data.verdict);
+  const v = getVerdict(data.verdict || '');
   const badge = document.getElementById('verdict-badge');
   badge.textContent = v.label; badge.className = 'badge ' + v.cls;
-  document.getElementById('verdict-text').textContent = data.verdict;
 
+  // Render verdict as Markdown -> sanitized HTML
+  const rawVerdict = data.verdict || '';
+  const htmlVerdict = DOMPurify.sanitize(marked.parse(rawVerdict));
+  document.getElementById('verdict-text').innerHTML = htmlVerdict;
+
+  // Doc chunks: render chunk.text as Markdown (fallback escape if empty)
   document.getElementById('doc-chunks').innerHTML =
-    (data.doc_chunks || []).map(c =>
-      `<div class="chunk-item">` +
-      `<div class="chunk-meta">Page ${c.metadata?.page || '?'} · score ${c.similarity}</div>` +
-      `<div class="chunk-text">${esc(c.text.slice(0, 300))}…</div></div>`
-    ).join('') || '<div class="chunk-meta">Aucun extrait pertinent.</div>';
+    (data.doc_chunks || []).map(c => {
+      const meta = c.metadata || {};
+      const title = meta.title ? ` — ${esc(meta.title)}` : '';
+      const metaLine = `Page ${meta.page||'?'}${title} · similarité ${c.similarity}`;
+      const md = c.text || '';
+      const html = DOMPurify.sanitize(marked.parse(md));
+      return `<div class="chunk-item">
+        <div class="chunk-meta">${esc(metaLine)}</div>
+        <div class="chunk-text">${html}</div></div>`;
+    }).join('') || '<div class="chunk-meta" style="font-family:var(--font-mono);font-size:11px;">Aucun extrait pertinent.</div>';
 
+  // Law chunks
   document.getElementById('law-chunks').innerHTML =
-    (data.law_articles || []).map(c =>
-      `<div class="chunk-item">` +
-      `<div class="chunk-meta">${c.metadata?.article || '?'} — ${c.metadata?.titre || ''} · score ${c.similarity}</div>` +
-      `<div class="chunk-text">${esc(c.text.slice(0, 300))}…</div></div>`
-    ).join('') || '<div class="chunk-meta">Aucun article RGPD pertinent.</div>';
+    (data.law_articles || []).map(c => {
+      const meta = c.metadata || {};
+      const metaLine = `${esc(meta.article||'?')} — ${esc(meta.titre||'') } · similarité ${c.similarity}`;
+      const md = c.text || '';
+      const html = DOMPurify.sanitize(marked.parse(md));
+      return `<div class="chunk-item">
+        <div class="chunk-meta">${metaLine}</div>
+        <div class="chunk-text">${html}</div></div>`;
+    }).join('') || '<div class="chunk-meta" style="font-family:var(--font-mono);font-size:11px;">Aucun article RGPD pertinent.</div>';
 
-  document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('results-section').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc   = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 </script>
 </body>
