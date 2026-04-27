@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RGPD Auditor — Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+:root {
+  --cream:       #F4F1EB;
+  --cream-dark:  #EAE6DC;
+  --cream-deep:  #DDD8CE;
+  --ink:         #1C1C2E;
+  --ink-light:   #3D3D52;
+  --muted:       #8A8898;
+  --navy:        #1A3558;
+  --navy-mid:    #234876;
+  --success:     #2D6E4E;
+  --success-bg:  #EAF4EE;
+  --danger:      #8B2020;
+  --danger-bg:   #FAEAEA;
+  --warn:        #8B6020;
+  --warn-bg:     #FAF3EA;
+  --gold:        #B08D57;
+  --border:      rgba(28,28,46,0.10);
+  --border-mid:  rgba(28,28,46,0.16);
+  --shadow-sm:   0 1px 3px rgba(28,28,46,0.06);
+  --shadow-md:   0 4px 16px rgba(28,28,46,0.08);
+  --radius:      10px;
+  --font-display:'Cormorant Garamond', Georgia, serif;
+  --font-body:   'DM Sans', system-ui, sans-serif;
+  --font-mono:   'DM Mono', 'Courier New', monospace;
+}
+ 
+html, body { height: 100%; }
+ 
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+ 
+/* ── Animations ── */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes dashMove { to { stroke-dashoffset:-20; } }
+@keyframes checkIn  { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+@keyframes pulseDot {
+  0%,100%{opacity:1;transform:translateX(50%) translateY(-50%) scale(1)}
+  50%    {opacity:.5;transform:translateX(50%) translateY(-50%) scale(1.6)}
+}
+@keyframes bubbleIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes typingDot {
+  0%,80%,100%{transform:translateY(0)}
+  40%        {transform:translateY(-5px)}
+}
+@keyframes btnPulse {
+  0%,100%{box-shadow:0 4px 16px rgba(26,53,88,.22)}
+  50%    {box-shadow:0 4px 28px rgba(26,53,88,.40)}
+}
+ 
+.animate { opacity:0; animation:fadeUp .5s cubic-bezier(.22,1,.36,1) forwards; }
+.delay-1{animation-delay:.05s} .delay-2{animation-delay:.15s} .delay-3{animation-delay:.25s}
+.delay-4{animation-delay:.35s} .delay-5{animation-delay:.45s} .delay-6{animation-delay:.55s}
+ 
+/* ══════════════════════════════════════
+   LAYOUT — deux colonnes en large, colonne unique en mobile
+══════════════════════════════════════ */
+.page {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 0;
+}
+ 
+/* Colonne gauche : formulaire d'audit */
+.sidebar {
+  grid-row: 1 / 3;
+  border-right: 1px solid var(--border-mid);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #FAFAF7;
+  overflow-y: auto;
+}
+ 
+/* Colonne droite : chat */
+.chat-area {
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+ 
+@media (max-width: 768px) {
+  .page { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; min-height: unset; }
+  .sidebar { grid-row: unset; border-right: none; border-bottom: 1px solid var(--border-mid); height: auto; position: static; }
+  .chat-area { grid-row: unset; height: 70vh; position: static; }
+}
+ 
+/* ── Sidebar header ── */
+.sidebar-header { padding-bottom: 1.25rem; border-bottom: 1px solid var(--border-mid); margin-bottom: .5rem; }
+.logo-row { display:flex; align-items:center; gap:12px; margin-bottom:.75rem; }
+.seal {
+  flex-shrink:0; width:44px; height:44px;
+  border:1.5px solid var(--navy-mid); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.seal::before { content:''; position:absolute; inset:4px; border:1px solid var(--border-mid); border-radius:50%; }
+.seal-inner { font-family:var(--font-mono); font-size:8px; font-weight:500; color:var(--navy); text-align:center; line-height:1.3; }
+.sidebar h1 { font-family:var(--font-display); font-size:24px; font-weight:600; line-height:1.1; }
+.sidebar h1 em { font-style:italic; color:var(--navy-mid); }
+.tagline { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.nav-link { font-size:11px; color:var(--navy-mid); text-decoration:none; display:inline-flex; align-items:center; gap:4px; opacity:.7; }
+.nav-link:hover { opacity:1; }
+ 
+/* ── Section labels ── */
+.section-label { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.section-label-text { font-size:10px; text-transform:uppercase; letter-spacing:.10em; font-weight:500; color:var(--muted); white-space:nowrap; }
+.section-label-line { flex:1; height:1px; background:var(--border); }
+ 
+/* ── Drop zone ── */
+.drop {
+  position:relative; border-radius:8px; padding:1.5rem 1rem; text-align:center;
+  cursor:pointer; background:var(--cream); transition:background .2s;
+}
+.drop-svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.drop-svg rect { fill:none; stroke:var(--border-mid); stroke-width:1.5; stroke-dasharray:7 5; transition:stroke .2s; }
+.drop:hover .drop-svg rect, .drop.hover .drop-svg rect { stroke:var(--navy-mid); animation:dashMove .5s linear infinite; }
+.drop.loaded { background:var(--success-bg); }
+.drop.loaded .drop-svg rect { stroke:var(--success); stroke-dasharray:none; animation:none; }
+.drop-icon { font-size:22px; margin-bottom:6px; display:block; transition:transform .2s; }
+.drop:hover .drop-icon { transform:translateY(-2px); }
+.drop-hint { font-size:12px; color:var(--muted); line-height:1.6; font-weight:300; }
+.drop-filename { display:none; font-size:12px; font-weight:500; color:var(--success); font-family:var(--font-mono); animation:checkIn .3s cubic-bezier(.34,1.56,.64,1); }
+ 
+/* ── Textarea ── */
+textarea {
+  width:100%; background:var(--cream); border:1px solid var(--border-mid); border-radius:8px;
+  color:var(--ink); font-size:13px; padding:10px 12px; resize:none; min-height:76px;
+  font-family:var(--font-body); font-weight:300; line-height:1.6;
+  transition:border-color .2s, box-shadow .2s;
+}
+textarea:focus { outline:none; border-color:var(--navy-mid); box-shadow:0 0 0 3px rgba(35,72,118,.08); }
+textarea::placeholder { color:var(--muted); font-style:italic; }
+ 
+/* ── Params ── */
+.params-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.param-box { background:var(--cream); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.param-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; font-weight:500; }
+.param-control { display:flex; align-items:center; gap:8px; margin-top:8px; }
+input[type=range] { flex:1; -webkit-appearance:none; height:2px; background:var(--cream-deep); border-radius:2px; outline:none; cursor:pointer; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+  background:var(--navy); border:2px solid #FAFAF7;
+  box-shadow:0 1px 4px rgba(28,28,46,.2); cursor:pointer; transition:transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+.param-val { font-family:var(--font-mono); font-size:14px; font-weight:500; color:var(--navy); min-width:34px; text-align:right; }
+ 
+/* ── Buttons ── */
+.btn {
+  width:100%; padding:12px; border-radius:8px; border:none;
+  background:var(--navy); color:#F4F1EB; font-size:12px; font-weight:500;
+  font-family:var(--font-body); letter-spacing:.06em; text-transform:uppercase;
+  cursor:pointer; transition:background .2s, transform .15s; box-shadow:0 3px 12px rgba(26,53,88,.22);
+}
+.btn:hover:not(:disabled) { background:var(--navy-mid); transform:translateY(-1px); }
+.btn:disabled { opacity:.6; cursor:not-allowed; animation:btnPulse 1.8s ease-in-out infinite; }
+.btn-ghost {
+  width:100%; padding:8px; border-radius:8px; border:1px solid var(--border-mid);
+  background:transparent; color:var(--muted); font-size:11px; font-weight:500;
+  font-family:var(--font-body); letter-spacing:.05em; text-transform:uppercase; cursor:pointer;
+  transition:all .15s;
+}
+.btn-ghost:hover { background:var(--cream-dark); color:var(--ink); }
+ 
+/* ── Progress ── */
+.progress-section { animation:fadeUp .3s ease forwards; }
+.progress-track { height:2px; background:var(--cream-deep); border-radius:2px; margin-bottom:1rem; position:relative; overflow:visible; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--navy-mid),var(--gold)); border-radius:2px; transition:width .5s cubic-bezier(.4,0,.2,1); position:relative; }
+.progress-fill::after {
+  content:''; position:absolute; right:0; top:50%;
+  transform:translateX(50%) translateY(-50%);
+  width:7px; height:7px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 5px var(--gold);
+  animation:pulseDot 1s ease-in-out infinite;
+}
+.progress-fill.done::after { display:none; }
+.step { font-size:11px; color:var(--muted); padding:2px 0; font-family:var(--font-mono); }
+.step.done   { color:var(--success); }
+.step.active { color:var(--navy-mid); font-weight:500; }
+ 
+/* ── Session badge ── */
+.session-badge {
+  display:flex; align-items:center; gap:6px; padding:6px 10px;
+  background:var(--success-bg); border:1px solid rgba(45,110,78,.2);
+  border-radius:6px; font-size:10px; color:var(--success); font-family:var(--font-mono);
+}
+.session-dot { width:6px; height:6px; border-radius:50%; background:var(--success); animation:pulseDot 2s ease infinite; }
+ 
+/* ── Error ── */
+.error-box { background:var(--danger-bg); border:1px solid rgba(139,32,32,.15); border-radius:8px; padding:.75rem 1rem; font-size:11px; font-family:var(--font-mono); color:var(--danger); line-height:1.7; white-space:pre-wrap; }
+ 
+/* ══════════════════════════════════════
+   CHAT AREA
+══════════════════════════════════════ */
+.chat-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: #FAFAF7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.chat-header-title { font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--ink); }
+.chat-header-sub   { font-size:11px; color:var(--muted); margin-top:1px; }
+.chat-status { font-size:10px; font-family:var(--font-mono); color:var(--muted); text-align:right; }
+.chat-status.active { color:var(--success); }
+ 
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scroll-behavior: smooth;
+}
+ 
+/* ── Empty state ── */
+.chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  text-align: center;
+  padding: 2rem;
+}
+.chat-empty-icon { font-size: 32px; opacity: .4; }
+.chat-empty-text { font-size: 13px; font-weight:300; line-height:1.7; }
+ 
+/* ── Messages ── */
+.chat-msg {
+  display: flex;
+  gap: 10px;
+  animation: bubbleIn .3s cubic-bezier(.22,1,.36,1) forwards;
+  max-width: 100%;
+}
+.chat-msg.user { flex-direction: row-reverse; }
+ 
+.avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--navy);
+  border: 1.5px solid var(--navy-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #F4F1EB;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  position: relative;
+  top: 2px;
+}
+ 
+.chat-bubble {
+  max-width: calc(100% - 48px);
+  padding: .75rem 1rem;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+ 
+.chat-msg.bot .chat-bubble {
+  background: #FDFCF9;
+  border: 1px solid var(--border);
+  border-radius: 2px 12px 12px 12px;
+  color: var(--ink-light);
+  box-shadow: var(--shadow-sm);
+}
+ 
+/* Markdown rendu dans les bulles bot */
+.chat-msg.bot .chat-bubble h3    { font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--ink); margin:1rem 0 .4rem; }
+.chat-msg.bot .chat-bubble h3:first-child { margin-top:0; }
+.chat-msg.bot .chat-bubble ul    { padding-left:1.25rem; margin:.4rem 0; }
+.chat-msg.bot .chat-bubble li    { margin:.2rem 0; }
+.chat-msg.bot .chat-bubble strong{ color:var(--navy); }
+.chat-msg.bot .chat-bubble em    { color:var(--muted); }
+.chat-msg.bot .chat-bubble hr    { border:none; border-top:1px solid var(--border); margin:.75rem 0; }
+.chat-msg.bot .chat-bubble code  { font-family:var(--font-mono); font-size:11px; background:var(--cream); padding:1px 5px; border-radius:4px; color:var(--navy-mid); }
+.chat-msg.bot .chat-bubble p     { margin:.4rem 0; }
+ 
+.chat-msg.user .chat-bubble {
+  background: var(--navy);
+  color: #EEF3FA;
+  border-radius: 12px 2px 12px 12px;
+  font-weight: 300;
+}
+ 
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: .75rem 1rem;
+}
+.typing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: typingDot 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: .15s; }
+.typing-dot:nth-child(3) { animation-delay: .30s; }
+ 
+/* ── Chat input zone ── */
+.chat-input-zone {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: #FAFAF7;
+  flex-shrink: 0;
+}
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.chat-input {
+  flex: 1;
+  background: var(--cream);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 10px 14px;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.5;
+  transition: border-color .2s, box-shadow .2s;
+  overflow-y: auto;
+}
+.chat-input:focus { outline:none; border-color:var(--navy-mid); box-shadow:0 0 0 3px rgba(35,72,118,.08); }
+.chat-input::placeholder { color:var(--muted); font-style:italic; }
+.chat-input:disabled { opacity:.5; cursor:not-allowed; }
+ 
+.chat-send {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border-radius: 8px;
+  border: none;
+  background: var(--navy);
+  color: #F4F1EB;
+  cursor: pointer;
+  display: flex; align-items:center; justify-content:center;
+  font-size: 16px;
+  transition: background .15s, transform .1s;
+  box-shadow: 0 2px 8px rgba(26,53,88,.2);
+}
+.chat-send:hover:not(:disabled) { background:var(--navy-mid); transform:translateY(-1px); }
+.chat-send:disabled { opacity:.4; cursor:not-allowed; }
+.chat-hint { font-size:10px; color:var(--muted); margin-top:6px; text-align:center; }
+ 
+/* ── Footer ── */
+.sidebar-footer { margin-top:auto; padding-top:1rem; border-top:1px solid var(--border); font-size:10px; color:var(--muted); line-height:1.8; }
+code { font-family:var(--font-mono); background:var(--cream-dark); border:1px solid var(--border); padding:1px 5px; border-radius:3px; color:var(--navy-mid); font-size:10px; }
+</style>
+</head>
+<body>
+<div class="page">
+ 
+  <!-- ══════════════════════════════════════
+       SIDEBAR — Formulaire d'audit
+  ══════════════════════════════════════ -->
+  <aside class="sidebar">
+ 
+    <div class="sidebar-header animate delay-1">
+      <div class="logo-row">
+        <div class="seal"><div class="seal-inner">RGPD<br>2016</div></div>
+        <div>
+          <h1>RGPD <em>Auditor</em></h1>
+          <div class="tagline">Conformité — Règlement (UE) 2016/679</div>
+        </div>
+      </div>
+      <a class="nav-link" href="index.html">← Vue rapport complet</a>
+    </div>
+ 
+    <!-- Upload -->
+    <div class="animate delay-2">
+      <div class="section-label">
+        <span class="section-label-text">Document</span>
+        <span class="section-label-line"></span>
+      </div>
+      <div class="drop" id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="ev(event,'over')" ondragleave="ev(event,'leave')" ondrop="ev(event,'drop')">
+        <svg class="drop-svg" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="7"/>
+        </svg>
+        <span class="drop-icon">📋</span>
+        <div class="drop-hint" id="drop-hint">Déposez votre PDF ici<br><small style="opacity:.7">ou cliquez</small></div>
+        <div class="drop-filename" id="drop-filename"></div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf" style="display:none" onchange="onFile(this.files[0])">
+    </div>
+ 
+    <!-- Question initiale -->
+    <div class="animate delay-3">
+      <div class="section-label">
+        <span class="section-label-text">Question initiale</span>
+        <span class="section-label-line"></span>
+      </div>
+      <textarea id="question" placeholder="Ex : Les transferts hors UE sont-ils conformes à l'Art. 46 ?&#10;Ex : Quelles obligations manquent sur le droit à l'effacement ?"></textarea>
+    </div>
+ 
+    <!-- Params -->
+    <div class="animate delay-4">
+      <div class="params-row">
+        <div class="param-box">
+          <div class="param-label">Top-k</div>
+          <div class="param-control">
+            <input type="range" min="3" max="10" value="5" step="1" id="topk" oninput="document.getElementById('topk-v').textContent=this.value">
+            <span class="param-val" id="topk-v">5</span>
+          </div>
+        </div>
+        <div class="param-box">
+          <div class="param-label">Seuil</div>
+          <div class="param-control">
+            <input type="range" min="20" max="70" value="35" step="5" id="thresh" oninput="document.getElementById('thresh-v').textContent=(this.value/100).toFixed(2)">
+            <span class="param-val" id="thresh-v">0.35</span>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Launch button -->
+    <div class="animate delay-5">
+      <button class="btn" id="audit-btn" onclick="startAudit()">
+        Lancer l'audit
+      </button>
+    </div>
+ 
+    <!-- Progress (affiché pendant le premier audit) -->
+    <div id="progress-section" style="display:none" class="progress-section">
+      <div class="progress-track">
+        <div class="progress-fill" id="pbar" style="width:0%"></div>
+      </div>
+      <div id="steps"></div>
+    </div>
+ 
+    <!-- Error -->
+    <div id="error-section" style="display:none" class="error-box"></div>
+ 
+    <!-- Session active -->
+    <div id="session-badge" style="display:none" class="session-badge">
+      <span class="session-dot"></span>
+      <span>Session active · <span id="session-id-display"></span></span>
+    </div>
+ 
+    <!-- Reset -->
+    <div id="reset-section" style="display:none">
+      <button class="btn-ghost" onclick="resetSession()">↺ Nouvel audit</button>
+    </div>
+ 
+    <div class="sidebar-footer">
+      <code>python api.py</code> → <code>localhost:8000</code><br>
+      Clé : <code>API_KEY_RGPD_AUDITOR</code>
+    </div>
+ 
+  </aside>
+ 
+  <!-- ══════════════════════════════════════
+       CHAT AREA
+  ══════════════════════════════════════ -->
+  <main class="chat-area">
+ 
+    <div class="chat-header">
+      <div>
+        <div class="chat-header-title">Conversation d'audit</div>
+        <div class="chat-header-sub">Posez vos questions sur le document analysé</div>
+      </div>
+      <div class="chat-status" id="chat-status">En attente d'un document</div>
+    </div>
+ 
+    <div class="chat-window" id="chat-window">
+      <div class="chat-empty" id="chat-empty">
+        <div class="chat-empty-icon">⚖️</div>
+        <div class="chat-empty-text">
+          Uploadez un contrat PDF et posez<br>
+          votre première question pour démarrer l'audit.
+        </div>
+      </div>
+    </div>
+ 
+    <div class="chat-input-zone">
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-input"
+          placeholder="Posez une question de suivi… (Entrée pour envoyer)"
+          disabled
+          onkeydown="handleChatKey(event)"
+          oninput="autoResize(this)"></textarea>
+        <button class="chat-send" id="chat-send" onclick="sendChat()" disabled title="Envoyer">
+          ↑
+        </button>
+      </div>
+      <div class="chat-hint">Shift+Entrée pour un saut de ligne</div>
+    </div>
+ 
+  </main>
+</div>
+ 
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  ÉTAT GLOBAL
+// ═══════════════════════════════════════════════════════════════
+ 
+const API_URL = 'http://localhost:8000';
+ 
+let selectedFile  = null;
+let sessionId     = null;   // session_id retourné par /audit
+let chatHistory   = [];     // [{ role: "user"|"assistant", content: "..." }]
+let isWaiting     = false;  // verrou pour éviter les doubles envois
+ 
+// ═══════════════════════════════════════════════════════════════
+//  UPLOAD
+// ═══════════════════════════════════════════════════════════════
+ 
+function ev(e, type) {
+  e.preventDefault();
+  const dz = document.getElementById('drop-zone');
+  if (type === 'over')  dz.classList.add('hover');
+  if (type === 'leave') dz.classList.remove('hover');
+  if (type === 'drop') {
+    dz.classList.remove('hover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.toLowerCase().endsWith('.pdf')) onFile(f);
+    else if (f) showSidebarError('Seuls les fichiers PDF sont acceptés.');
+  }
+}
+ 
+function onFile(f) {
+  if (!f) return;
+  selectedFile = f;
+  document.getElementById('drop-zone').classList.add('loaded');
+  document.getElementById('drop-hint').style.display  = 'none';
+  const fn = document.getElementById('drop-filename');
+  fn.style.display = 'block';
+  fn.textContent   = '✓  ' + f.name + '  ·  ' + (f.size / 1024).toFixed(0) + ' KB';
+}
+ 
+// ═══════════════════════════════════════════════════════════════
+//  PREMIER AUDIT (/audit)
+// ═══════════════════════════════════════════════════════════════
+ 
+const STEPS   = [
+  '1/5  Découpage structurel du PDF...',
+  '2/5  Création de la collection vectorielle...',
+  '3/5  Connexion à la base RGPD...',
+  '4/5  Dual RAG search + query expansion...',
+  '5/5  Génération du rapport (Gemini)...'
+];
+const TIMINGS = [600, 1400, 350, 2200, 1800];
+ 
+function renderSteps(active) {
+  document.getElementById('steps').innerHTML = STEPS.map((s, i) =>
+    `<div class="step ${i < active ? 'done' : i === active ? 'active' : ''}">` +
+    (i < active ? '✓ ' : i === active ? '→ ' : '· ') + s + '</div>'
+  ).join('');
+}
+ 
+async function startAudit() {
+  if (!selectedFile) { showSidebarError('Veuillez sélectionner un fichier PDF.'); return; }
+  const question = document.getElementById('question').value.trim();
+  if (!question)   { showSidebarError('Veuillez saisir une question.'); return; }
+ 
+  const btn = document.getElementById('audit-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Analyse en cours…';
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('error-section').style.display    = 'none';
+ 
+  // Animation de progression
+  for (let i = 0; i < STEPS.length; i++) {
+    renderSteps(i);
+    document.getElementById('pbar').style.width = Math.round((i / STEPS.length) * 82) + '%';
+    await sleep(TIMINGS[i]);
+  }
+ 
+  // Ajout du message utilisateur dans le chat avant l'appel API
+  appendMessage(question, 'user');
+  appendTyping();
+ 
+  const topk      = document.getElementById('topk').value;
+  const threshold = (document.getElementById('thresh').value / 100).toFixed(2);
+  const form      = new FormData();
+  form.append('file',      selectedFile);
+  form.append('question',  question);
+  form.append('top_k',     topk);
+  form.append('threshold', threshold);
+ 
+  try {
+    const resp = await fetch(`${API_URL}/audit_chat`, { method:'POST', body:form });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || 'Erreur serveur');
+    }
+    const data = await resp.json();
+ 
+    // ── Compléter la progression ──
+    const pbar = document.getElementById('pbar');
+    pbar.style.width = '100%';
+    pbar.classList.add('done');
+    renderSteps(STEPS.length);
+    await sleep(300);
+ 
+    // ── Stocker la session ──
+    sessionId = data.session_id;
+ 
+    // ── Initialiser l'historique avec ce premier échange ──
+    chatHistory = [
+      { role: 'user',      content: question },
+      { role: 'assistant', content: data.verdict }
+    ];
+ 
+    // ── Afficher la réponse dans le chat ──
+    removeTyping();
+    appendMessage(data.verdict, 'bot');
+ 
+    // ── Mettre à jour l'UI ──
+    document.getElementById('chat-status').textContent  = 'Session active';
+    document.getElementById('chat-status').className    = 'chat-status active';
+    document.getElementById('session-id-display').textContent = sessionId;
+    document.getElementById('session-badge').style.display    = 'flex';
+    document.getElementById('reset-section').style.display    = 'block';
+    document.getElementById('progress-section').style.display = 'none';
+ 
+    // Activer le chat
+    enableChat();
+ 
+  } catch(e) {
+    removeTyping();
+    showSidebarError(`${e.message}\n\nVérifiez que l'API tourne : python api.py`);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Lancer l\'audit';
+  }
+}
+ 
+async function sendChat() {
+  if (isWaiting || !sessionId) return;
+  const input = document.getElementById('chat-input');
+  const msg   = input.value.trim();
+  if (!msg) return;
+ 
+  isWaiting = true;
+  input.value    = '';
+  input.style.height = '';
+  document.getElementById('chat-send').disabled = true;
+ 
+  appendMessage(msg, 'user');
+  appendTyping();
+ 
+  // On inclut dans l'historique les échanges précédents
+  // (le serveur s'en sert pour contextualiser la réponse)
+  const payload = {
+    session_id:   sessionId,
+    question:     msg,
+    chat_history: [...chatHistory]   // copie — on l'enrichit après la réponse
+  };
+ 
+  try {
+    const resp = await fetch(`${API_URL}/chat`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+ 
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || 'Erreur serveur');
+    }
+ 
+    const data = await resp.json();
+    removeTyping();
+    appendMessage(data.verdict, 'bot');
+ 
+    // ── Mettre à jour l'historique APRÈS la réponse ──
+    // On ajoute la question ET la réponse pour que le prochain appel
+    // ait le contexte complet de cet échange.
+    chatHistory.push({ role: 'user',      content: msg });
+    chatHistory.push({ role: 'assistant', content: data.verdict });
+ 
+  } catch(e) {
+    removeTyping();
+    // Message d'erreur spécial si session expirée
+    if (e.message.includes('expirée') || e.message.includes('404')) {
+      appendMessage(
+        '⚠️ **Session expirée.** Le serveur ne conserve les sessions qu\'une heure. '
+        + 'Veuillez relancer un audit complet via le formulaire.',
+        'bot'
+      );
+      disableChat();
+    } else {
+      appendMessage(`❌ Erreur : ${e.message}`, 'bot');
+    }
+  } finally {
+    isWaiting = false;
+    document.getElementById('chat-send').disabled = false;
+    document.getElementById('chat-input').focus();
+  }
+}
+ 
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+ 
+function autoResize(el) {
+  el.style.height = '';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+ 
+// ═══════════════════════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════════════════════
+ 
+function resetSession() {
+  // Libération côté serveur (best-effort)
+  if (sessionId) fetch(`${API_URL}/session/${sessionId}`, { method:'DELETE' }).catch(()=>{});
+ 
+  sessionId   = null;
+  chatHistory = [];
+  selectedFile = null;
+ 
+  // Reset UI formulaire
+  const dz = document.getElementById('drop-zone');
+  dz.classList.remove('loaded');
+  document.getElementById('drop-hint').style.display     = 'block';
+  document.getElementById('drop-filename').style.display = 'none';
+  document.getElementById('question').value = '';
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('error-section').style.display    = 'none';
+  document.getElementById('session-badge').style.display    = 'none';
+  document.getElementById('reset-section').style.display    = 'none';
+ 
+  // Reset chat
+  const cw = document.getElementById('chat-window');
+  cw.innerHTML = `<div class="chat-empty" id="chat-empty">
+    <div class="chat-empty-icon">⚖️</div>
+    <div class="chat-empty-text">Uploadez un contrat PDF et posez<br>votre première question pour démarrer l'audit.</div>
+  </div>`;
+  disableChat();
+  document.getElementById('chat-status').textContent = 'En attente d\'un document';
+  document.getElementById('chat-status').className   = 'chat-status';
+}
+ 
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS — UI
+// ═══════════════════════════════════════════════════════════════
+ 
+function enableChat() {
+  document.getElementById('chat-input').disabled = false;
+  document.getElementById('chat-send').disabled  = false;
+  document.getElementById('chat-input').focus();
+  // Supprimer l'état vide s'il est encore présent
+  const empty = document.getElementById('chat-empty');
+  if (empty) empty.remove();
+}
+ 
+function disableChat() {
+  document.getElementById('chat-input').disabled = true;
+  document.getElementById('chat-send').disabled  = true;
+}
+ 
+function appendMessage(text, from) {
+  const cw   = document.getElementById('chat-window');
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-msg ' + from;
+ 
+  if (from === 'bot') {
+    const avatar = document.createElement('div');
+    avatar.className   = 'avatar';
+    avatar.textContent = 'AI';
+ 
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    // Rendu Markdown sécurisé (marked + DOMPurify)
+    bubble.innerHTML = DOMPurify.sanitize(marked.parse(text));
+ 
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+  } else {
+    const bubble = document.createElement('div');
+    bubble.className   = 'chat-bubble';
+    bubble.textContent = text;
+    wrap.appendChild(bubble);
+  }
+ 
+  cw.appendChild(wrap);
+  cw.scrollTop = cw.scrollHeight;
+}
+ 
+function appendTyping() {
+  const cw   = document.getElementById('chat-window');
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-msg bot';
+  wrap.id        = 'typing-bubble';
+ 
+  const avatar = document.createElement('div');
+  avatar.className   = 'avatar';
+  avatar.textContent = 'AI';
+ 
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble';
+  bubble.innerHTML = `<div class="typing-indicator">
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+  </div>`;
+ 
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  cw.appendChild(wrap);
+  cw.scrollTop = cw.scrollHeight;
+}
+ 
+function removeTyping() {
+  const t = document.getElementById('typing-bubble');
+  if (t) t.remove();
+}
+ 
+function showSidebarError(msg) {
+  const el = document.getElementById('error-section');
+  el.style.display = 'block';
+  el.textContent   = msg;
+}
+ 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+</script>
+</body>
+</html>

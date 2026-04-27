@@ -122,6 +122,14 @@ body {
   border-radius:50%; background:var(--gold);
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
 /* ── Section labels ── */
 .section-label { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .section-label-text { font-size:10px; text-transform:uppercase; letter-spacing:.10em; font-weight:500; color:var(--muted); white-space:nowrap; }
@@ -199,6 +207,13 @@ input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); box-shadow
   cursor:pointer; transition:background .2s, transform .15s, box-shadow .2s;
   box-shadow:0 4px 16px rgba(26,53,88,.22); position:relative; overflow:hidden;
 }
+
+.btn a {
+  text-decoration: none;
+  color: #F4F1EB;
+  display: inline-block;
+}
+
 .btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 60%); pointer-events:none; }
 .btn:hover:not(:disabled) { background:var(--navy-mid); transform:translateY(-1px); box-shadow:0 6px 22px rgba(26,53,88,.30); }
 .btn:active:not(:disabled) { transform:translateY(0); }
@@ -281,6 +296,12 @@ code { font-family:var(--font-mono); font-size:10.5px; background:var(--cream-da
       <div class="meta-chip">RAG vectoriel</div>
       <div class="meta-chip">Gemini 2.5 Flash</div>
       <div class="meta-chip">ChromaDB</div>
+    </div>
+    <div class="header-meta">
+      <div class="header-actions">
+        <button class="btn" ><a href="index.html" style="color: #F4F1EB">Analyse générale</a></button>
+        <button class="btn" ><a href="index2.html" style="color: #F4F1EB">Question précise</a></button>
+      </div>
     </div>
   </header>
 
@@ -388,6 +409,16 @@ Ex : Ce contrat respecte-t-il les exigences de l'article 28 sur les sous-traitan
 </div>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+<script>
+  // rend le parent <button> cliquable en suivant l'<a> interne
+  document.querySelectorAll('.header-actions button').forEach(btn => {
+    const a = btn.querySelector('a');
+    if (a && a.getAttribute('href')) {
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', () => { location.href = a.getAttribute('href'); });
+    }
+  });
+</script>
 <script>
 const API_URL = 'http://localhost:8000';
 let selectedFile = null;
