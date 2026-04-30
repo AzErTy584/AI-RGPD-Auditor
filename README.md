@@ -101,7 +101,7 @@ Le rapport est automatiquement sauvegardé sous `audit_<session_id>.md`.
 ```bash
 # 1. Lancer le serveur
 python api.py
-# → Check que API tourne : http://localhost:8000//health
+# → Check que API tourne : http://localhost:8000/health
 # → Documentation Swagger : http://localhost:8000/docs
 
 # 2. Ouvrir index.html dans le navigateur
